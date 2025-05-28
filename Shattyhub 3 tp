@@ -1,110 +1,107 @@
-local ts = game:GetService("TweenService")
-local rs = game:GetService("RunService")
-local uis = game:GetService("UserInputService")
-local plr = game:GetService("Players").LocalPlayer
-local toggled, runningThread = false
-
-local bv, bg, hbConn, moveDir = nil, nil, nil, Vector3.zero
-local flySpeed = 100
-
-local inputDir = {
-	[Enum.KeyCode.W] = Vector3.new(0, 0, -1),
-	[Enum.KeyCode.S] = Vector3.new(0, 0, 1),
-	[Enum.KeyCode.A] = Vector3.new(-1, 0, 0),
-	[Enum.KeyCode.D] = Vector3.new(1, 0, 0)
-}
-
-uis.InputBegan:Connect(function(i, g)
-	if not g and inputDir[i.KeyCode] then moveDir += inputDir[i.KeyCode] end
-end)
-uis.InputEnded:Connect(function(i, g)
-	if not g and inputDir[i.KeyCode] then moveDir -= inputDir[i.KeyCode] end
-end)
-
-local function startVFly(hrp)
-	if bv then return end
-	bv = Instance.new("BodyVelocity", hrp)
-	bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
-	bv.Velocity = Vector3.zero
-
-	bg = Instance.new("BodyGyro", hrp)
-	bg.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
-	bg.P, bg.CFrame = 10000, hrp.CFrame
-
-	hbConn = rs.Heartbeat:Connect(function()
-		if not bv or not bg then return end
-		local v = Vector3.zero
-		if moveDir.Magnitude > 0 then
-			local f, r = -hrp.CFrame.LookVector, hrp.CFrame.RightVector
-			v = (moveDir.Z * f + moveDir.X * r).Unit * flySpeed
-		end
-		if uis:IsKeyDown(Enum.KeyCode.Space) then
-			v += hrp.CFrame.UpVector * flySpeed
-		elseif uis:IsKeyDown(Enum.KeyCode.LeftControl) then
-			v -= hrp.CFrame.UpVector * flySpeed
-		end
-		bv.Velocity, bg.CFrame = v, hrp.CFrame
-	end)
-end
-
-local function stopVFly()
-	if hbConn then hbConn:Disconnect() hbConn = nil end
-	if bv then bv:Destroy() bv = nil end
-	if bg then bg:Destroy() bg = nil end
-end
+-- Your whole script here except the button part
 
 local function teleportToEnd()
-	toggled = not toggled
-	if not toggled then return end
+    local toggled = true
+    local ts = game:GetService("TweenService")
+    local rs = game:GetService("RunService")
+    local uis = game:GetService("UserInputService")
+    local plr = game:GetService("Players").LocalPlayer
 
-	runningThread = coroutine.create(function()
-		local char = plr.Character or plr.CharacterAdded:Wait()
-		local hrp = char:WaitForChild("HumanoidRootPart")
-		local hum = char:WaitForChild("Humanoid")
-		local pos = hrp.Position
-		local step, spd = 2500, 2500
-		local dur = step / spd
+    local bv, bg, hbConn, moveDir = nil, nil, nil, Vector3.zero
+    local flySpeed = 100
 
-		while not (workspace:FindFirstChild("RuntimeItems") and workspace.RuntimeItems:FindFirstChild("Chair")) and toggled do
-			local dest = pos + Vector3.new(0, 0, -step)
-			ts:Create(hrp, TweenInfo.new(dur, Enum.EasingStyle.Linear), {CFrame = CFrame.new(dest)}):Play()
-			task.wait(dur + 0.05)
-			pos = dest
-		end
-		if not toggled then return end
+    local inputDir = {
+        [Enum.KeyCode.W] = Vector3.new(0, 0, -1),
+        [Enum.KeyCode.S] = Vector3.new(0, 0, 1),
+        [Enum.KeyCode.A] = Vector3.new(-1, 0, 0),
+        [Enum.KeyCode.D] = Vector3.new(1, 0, 0)
+    }
 
-		local chair = workspace.RuntimeItems:WaitForChild("Chair")
-		local seat = chair:FindFirstChildWhichIsA("Seat")
-		hrp.CFrame = seat.CFrame + Vector3.new(0, 3, 0)
-		if seat:FindFirstChild("SeatWeld") then seat.SeatWeld:Destroy() end
+    uis.InputBegan:Connect(function(i, g)
+        if not g and inputDir[i.KeyCode] then moveDir += inputDir[i.KeyCode] end
+    end)
+    uis.InputEnded:Connect(function(i, g)
+        if not g and inputDir[i.KeyCode] then moveDir -= inputDir[i.KeyCode] end
+    end)
 
-		repeat seat:Sit(hum) task.wait(0.1) until hum.Sit and hum.SeatPart == seat or not toggled
-		if not toggled then return end
+    local function startVFly(hrp)
+        if bv then return end
+        bv = Instance.new("BodyVelocity", hrp)
+        bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+        bv.Velocity = Vector3.zero
 
-		local weld = Instance.new("Weld", seat)
-		weld.Name = "SeatWeld"
-		weld.Part0, weld.Part1 = seat, hrp
-		weld.C0, weld.C1 = seat.CFrame:ToObjectSpace(hrp.CFrame), CFrame.new()
+        bg = Instance.new("BodyGyro", hrp)
+        bg.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+        bg.P, bg.CFrame = 10000, hrp.CFrame
 
-		startVFly(hrp)
-		task.wait(0.3)
+        hbConn = rs.Heartbeat:Connect(function()
+            if not bv or not bg then return end
+            local v = Vector3.zero
+            if moveDir.Magnitude > 0 then
+                local f, r = -hrp.CFrame.LookVector, hrp.CFrame.RightVector
+                v = (moveDir.Z * f + moveDir.X * r).Unit * flySpeed
+            end
+            if uis:IsKeyDown(Enum.KeyCode.Space) then
+                v += hrp.CFrame.UpVector * flySpeed
+            elseif uis:IsKeyDown(Enum.KeyCode.LeftControl) then
+                v -= hrp.CFrame.UpVector * flySpeed
+            end
+            bv.Velocity, bg.CFrame = v, hrp.CFrame
+        end)
+    end
 
-		local tgt = CFrame.new(-377.487976, 0.200000763, -49057.0547, 0, 0, 1, 0, 1, 0, -1, 0, 0)
-		for _ = 1, 7 do if not toggled then break end chair:PivotTo(tgt) task.wait(0.6) end
-		hrp.CFrame = tgt + Vector3.new(0, 3, 0)
+    local function stopVFly()
+        if hbConn then hbConn:Disconnect() hbConn = nil end
+        if bv then bv:Destroy() bv = nil end
+        if bg then bg:Destroy() bg = nil end
+    end
 
-		stopVFly()
+    -- The main teleport + fly logic here:
+    local char = plr.Character or plr.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    local hum = char:WaitForChild("Humanoid")
+    local pos = hrp.Position
+    local step, spd = 2500, 2500
+    local dur = step / spd
 
-		while toggled and hum.Sit and hum.SeatPart == seat do
-			if not hum.Sit then seat:Sit(hum) end
-			if not weld.Parent then weld.Parent = seat end
-			task.wait(0.2)
-		end
+    while not (workspace:FindFirstChild("RuntimeItems") and workspace.RuntimeItems:FindFirstChild("Chair")) and toggled do
+        local dest = pos + Vector3.new(0, 0, -step)
+        ts:Create(hrp, TweenInfo.new(dur, Enum.EasingStyle.Linear), {CFrame = CFrame.new(dest)}):Play()
+        task.wait(dur + 0.05)
+        pos = dest
+    end
+    if not toggled then return end
 
-		if weld and weld.Parent then weld:Destroy() end
-		if hum and hum.Parent then hum.Sit = false end
-	end)
-	coroutine.resume(runningThread)
+    local chair = workspace.RuntimeItems:WaitForChild("Chair")
+    local seat = chair:FindFirstChildWhichIsA("Seat")
+    hrp.CFrame = seat.CFrame + Vector3.new(0, 3, 0)
+    if seat:FindFirstChild("SeatWeld") then seat.SeatWeld:Destroy() end
+
+    repeat seat:Sit(hum) task.wait(0.1) until hum.Sit and hum.SeatPart == seat or not toggled
+    if not toggled then return end
+
+    local weld = Instance.new("Weld", seat)
+    weld.Name = "SeatWeld"
+    weld.Part0, weld.Part1 = seat, hrp
+    weld.C0, weld.C1 = seat.CFrame:ToObjectSpace(hrp.CFrame), CFrame.new()
+
+    startVFly(hrp)
+    task.wait(0.3)
+
+    local tgt = CFrame.new(-377.487976, 0.200000763, -49057.0547, 0, 0, 1, 0, 1, 0, -1, 0, 0)
+    for _ = 1, 7 do if not toggled then break end chair:PivotTo(tgt) task.wait(0.6) end
+    hrp.CFrame = tgt + Vector3.new(0, 3, 0)
+
+    stopVFly()
+
+    while toggled and hum.Sit and hum.SeatPart == seat do
+        if not hum.Sit then seat:Sit(hum) end
+        if not weld.Parent then weld.Parent = seat end
+        task.wait(0.2)
+    end
+
+    if weld and weld.Parent then weld:Destroy() end
+    if hum and hum.Parent then hum.Sit = false end
 end
 
 return teleportToEnd
